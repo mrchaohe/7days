@@ -1,0 +1,1117 @@
+<!DOCTYPE html>
+<!-- saved from url=(0037)https://geektutu.com/post/geerpc.html -->
+<html lang="zh-CN"><!-- Head tag --><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="referrer" content="no-referrer-when-downgrade">
+  
+  <meta name="baidu-site-verification" content="p7Pz3jlx4t">
+  <meta name="google-site-verification" content="X31OY0d2sKImNbS2x8-OpITWRK4nn7nZCcXe3_hA9ew">
+  <meta name="msvalidate.01" content="7E2AEE3378AC93764DEAB411177A21A1">
+  <meta name="360-site-verification" content="1d1e81a1a48a1ed2e3308d7cb8e548e7">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <!-- if page has tags, then add tags to keyword -->
+  
+  
+  <meta name="keywords" content="geektutu,jiketutu,Go语言,golang,python,Go,Go语言,从零实现RPC框架,动手写RPC框架,服务注册与发现,负载均衡">
+  <!-- page.description has higher priority -->
+  <meta name="description" content="7天用 Go语言/golang 从零实现 RPC 框架 GeeRPC 教程(7 days implement golang remote procedure call framework from scratch tutorial)，动手写 RPC 框架，参照 golang 标准库 net/rpc 的实现，实现了服务端(server)、支持异步和并发的客户端(client)、消息编码与解码(message encoding and decoding)、服务注册(service register)、支持 TCP/Unix/HTTP 等多种传输协议。并在此基础上新增了协议交换(protocol exchange)、注册中心(registry)、服务发现(service discovery)、负载均衡(load balance)、超时处理(timeout processing)等特性。">
+  <link rel="shortcut icon" href="./7天用Go从零实现RPC框架GeeRPC _ 极客兔兔_files/icon.png">
+  <title>
+    
+    7天用Go从零实现RPC框架GeeRPC | 极客兔兔
+    
+  </title>
+
+  <link rel="canonical" href="https://geektutu.com/post/geerpc.html">
+  
+<link rel="stylesheet" href="./7天用Go从零实现RPC框架GeeRPC _ 极客兔兔_files/geektutu.css">
+
+  <!-- global function -->
+  <script type="text/javascript" async="" src="./7天用Go从零实现RPC框架GeeRPC _ 极客兔兔_files/analytics.js.下载"></script><script type="text/javascript" async="" src="./7天用Go从零实现RPC框架GeeRPC _ 极客兔兔_files/js"></script><script>
+    window.globalAddScript = function (url, onload, onerror) {
+      var s = document.createElement('script');
+      s.src = url;
+      onload && (s.onload = onload);
+      onerror && (s.onerror = onerror);
+      document.body.appendChild(s);
+    }
+    window.globalAddCss = function (url) {
+      var s = document.createElement('link');
+      s.rel = 'stylesheet';
+      s.href = url;
+      document.body.appendChild(s);
+    }
+    window.getPosition = function (ele) {
+      var x = 0, y = 0;
+      while (ele) {
+        x += (ele.offsetLeft - ele.scrollLeft + ele.clientLeft);
+        y += (ele.offsetTop - ele.scrollTop + ele.clientTop);
+        ele = ele.offsetParent;
+      }
+      return { x: x, y: y };
+    }
+    window.getDom = function (str) { return document.querySelector(str) }
+  </script>
+  <!-- google ad -->
+  
+<meta name="generator" content="Hexo 5.2.0"><link rel="alternate" href="https://geektutu.com/feed.xml" title="极客兔兔" type="application/rss+xml">
+<link href="https://ydlunacommon-cdn.nosdn.127.net/0903d3c0bd4ab1a7e5d61c29b459b83b.svg" rel="preload" as="image"><link href="https://ydlunacommon-cdn.nosdn.127.net/1fcf50513b6d47e71b13e9388f709b3d.svg" rel="preload" as="image"></head>
+
+<body>
+    
+<style>
+    body {
+        background: white;
+    }
+    .gkt-header-placeholder, .gkt-header {
+        display: none;
+    }
+    .main-container {
+        width: 100%;
+        padding-top: 0;
+        max-width: 100%;
+    }
+</style>
+
+<header class="gkt-header col-xs-12 padding-0">
+    <div id="gkt-nav" class="gkt-header-container hide">
+        <a href="https://geektutu.com/" class="gkt-header-title float-left">
+            <img class="float-left" src="./7天用Go从零实现RPC框架GeeRPC _ 极客兔兔_files/icon.png" alt="">
+            <span>极客兔兔</span>
+        </a>
+        <nav class="gkt-header-nav text-right">
+            <ul>
+                <li><a class="hidden-xs" href="https://geektutu.com/feed.xml">订阅</a></li>
+                <li><a href="https://geektutu.com/series/">专题</a></li>
+                <li><a href="https://geektutu.com/archives/">归档</a></li>
+                <li><a href="https://geektutu.com/post/link.html">友链</a></li>
+                <li><a href="https://geektutu.com/post/about.html">关于</a></li>
+            </ul>
+        </nav>
+    </div>
+    <div id="gkt-cate-nav" class="gkt-header-container hidden-xs">
+        
+        <nav class="gkt-header-nav float-left">
+            <ul>
+                
+                
+                <li class="gkt-cate-name float-left ">
+                    <a class="float-left" href="https://geektutu.com/post/tensorflow-mnist-simplest.html">简明教程 ▾</a>
+                    
+                    <ul class="gkt-sub-cate">
+                        
+                        <li class="gkt-sub-cate-name "><a class="float-left" href="https://geektutu.com/post/tensorflow-mnist-simplest.html">TensorFlow 教程</a></li>
+                        
+                        <li class="gkt-sub-cate-name "><a class="float-left" href="https://geektutu.com/post/pandas-dataframe-series.html">Pandas 数据处理</a></li>
+                        
+                        <li class="gkt-sub-cate-name "><a class="float-left" href="https://geektutu.com/post/tf2doc.html">TensorFlow2 文档</a></li>
+                        
+                        <li class="gkt-sub-cate-name "><a class="float-left" href="https://geektutu.com/post/quick-golang.html">Go 简明教程</a></li>
+                        
+                        <li class="gkt-sub-cate-name "><a class="float-left" href="https://geektutu.com/post/quick-rust.html">Rust 简明教程</a></li>
+                        
+                        <li class="gkt-sub-cate-name "><a class="float-left" href="https://geektutu.com/post/quick-python.html">Python 简明教程</a></li>
+                        
+                    </ul>
+                    
+                </li>
+                
+                <li class="gkt-cate-name float-left ">
+                    <a class="float-left" href="https://geektutu.com/post/blog-experience-1.html">杂谈 ▾</a>
+                    
+                    <ul class="gkt-sub-cate">
+                        
+                        <li class="gkt-sub-cate-name "><a class="float-left" href="https://geektutu.com/post/blog-experience-1.html">建站经历</a></li>
+                        
+                        <li class="gkt-sub-cate-name "><a class="float-left" href="https://geektutu.com/post/2020.html">年终总结</a></li>
+                        
+                    </ul>
+                    
+                </li>
+                
+                <li class="gkt-cate-name float-left ">
+                    <a class="float-left" href="https://geektutu.com/post/qa-ml.html">面试 ▾</a>
+                    
+                    <ul class="gkt-sub-cate">
+                        
+                        <li class="gkt-sub-cate-name "><a class="float-left" href="https://geektutu.com/post/qa-ml.html">机器学习面试题</a></li>
+                        
+                        <li class="gkt-sub-cate-name "><a class="float-left" href="https://geektutu.com/post/qa-golang.html">Go 语言面试题</a></li>
+                        
+                    </ul>
+                    
+                </li>
+                
+                <li class="gkt-cate-name float-left active">
+                    <a class="float-left" href="https://geektutu.com/post/gee.html">从零实现 ▾</a>
+                    
+                    <ul class="gkt-sub-cate">
+                        
+                        <li class="gkt-sub-cate-name "><a class="float-left" href="https://geektutu.com/post/gee.html">Web框架 - Gee</a></li>
+                        
+                        <li class="gkt-sub-cate-name "><a class="float-left" href="https://geektutu.com/post/geecache.html">分布式缓存 - GeeCache</a></li>
+                        
+                        <li class="gkt-sub-cate-name "><a class="float-left" href="https://geektutu.com/post/geeorm.html">ORM框架 - GeeORM</a></li>
+                        
+                        <li class="gkt-sub-cate-name active"><a class="float-left" href="https://geektutu.com/post/geerpc.html">RPC框架 - GeeRPC</a></li>
+                        
+                        <li class="gkt-sub-cate-name "><a class="float-left" href="https://geektutu.com/post/7days-golang-q1.html">7days-golang Q &amp; A</a></li>
+                        
+                    </ul>
+                    
+                </li>
+                
+                <li class="gkt-cate-name float-left ">
+                    <a class="float-left" href="https://geektutu.com/post/box-tools.html">百宝箱 ▾</a>
+                    
+                    <ul class="gkt-sub-cate">
+                        
+                        <li class="gkt-sub-cate-name "><a class="float-left" href="https://geektutu.com/post/box-tools.html">工具</a></li>
+                        
+                        <li class="gkt-sub-cate-name "><a class="float-left" href="https://geektutu.com/post/cheat-sheet-sqlite.html">SQLite 速查表</a></li>
+                        
+                    </ul>
+                    
+                </li>
+                
+                <li class="gkt-cate-name float-left ">
+                    <a class="float-left" href="https://geektutu.com/post/high-performance-go.html">高性能编程 ▾</a>
+                    
+                    <ul class="gkt-sub-cate">
+                        
+                        <li class="gkt-sub-cate-name "><a class="float-left" href="https://geektutu.com/post/high-performance-go.html">序言</a></li>
+                        
+                        <li class="gkt-sub-cate-name "><a class="float-left" href="https://geektutu.com/post/hpg-benchmark.html">性能分析</a></li>
+                        
+                        <li class="gkt-sub-cate-name "><a class="float-left" href="https://geektutu.com/post/hpg-string-concat.html">常用数据结构</a></li>
+                        
+                        <li class="gkt-sub-cate-name "><a class="float-left" href="https://geektutu.com/post/hpg-mutex.html">并发编程</a></li>
+                        
+                        <li class="gkt-sub-cate-name "><a class="float-left" href="https://geektutu.com/post/hpg-reduce-size.html">编译优化</a></li>
+                        
+                        <li class="gkt-sub-cate-name "><a class="float-left" href="https://geektutu.com/post/hpg-gotchas-array-slice.html">语言陷阱</a></li>
+                        
+                    </ul>
+                    
+                </li>
+                
+            </ul>
+        </nav>
+    </div>
+</header>
+<div class="gkt-header-placeholder" style="height: 44px"></div>
+<div class="gkt-header-placeholder hidden-xs" style="height: 44px"></div>
+<script>
+    (function () {
+        window.addEventListener('scroll', function () {
+            if (window.innerWidth < 768) {
+                return;
+            }
+            var nav = document.querySelector('#gkt-nav');
+            var scrollTop = document.documentElement.scrollTop || document.body.scrollTop;
+            scrollTop > 50 && (nav.classList.add('hide'));
+            scrollTop <= 50 && (nav.classList.remove('hide'));
+        });
+        var cateNavs = document.querySelectorAll('#gkt-cate-nav>nav>ul>li');
+        [].slice.call(cateNavs).forEach(function (item) {
+            var sub = item.querySelector('.gkt-sub-cate');
+            if (!sub) return;
+            item.addEventListener('mouseenter', function (e) { sub.style.display = 'block'; }, false);
+            item.addEventListener('mouseleave', function (e) { sub.style.display = 'none'; }, false);
+        })
+    })();
+</script>
+    <!-- Main Content -->
+    <div class="main-container">
+        <!-- Main Content -->
+<main class="col-xs-12 padding-0 markdown-it">
+    <!-- Post Container -->
+    
+    
+    <!-- Post Content -->
+<style>
+  .markdown-it article h1, .markdown-it article h2, .markdown-it article h3 {
+    padding-top: 5px;
+    margin-top: 0px;
+  }
+  .post-container {
+    padding: 0 !important;
+    width: 100%;
+  }
+  .post-container article {
+    padding: 0 15px !important;
+  }
+  .gkt-book {
+    max-width: 80rem;
+    margin: 1rem auto;
+    display: flex;
+  }
+  .gkt-book-title {
+    color: #343a40;
+    font-size: 1.2em;
+  }
+  .gkt-sidebar-wrapper {
+    position: fixed;
+    margin-top: 15px;
+  }
+  .gkt-book-menu {
+    flex: 0 0 16rem;
+    padding-left: 15px;
+    padding-top: 5px;
+    z-index: 999;
+  }
+  .gkt-book-menu a {
+    color: #343a40;
+  }
+  .gkt-book-menu a.active {
+    color: #337ab7;
+  }
+  .gkt-book-menu > nav {
+    position: fixed;
+    overflow: auto;
+    padding-right: 15px;
+    height: 95%;
+    font-size: 0.85em;
+    line-height: 2;
+    -ms-overflow-style: none;
+    overflow: -moz-scrollbars-none;
+  }
+  .gkt-book-menu > nav::-webkit-scrollbar-track {
+    background-color: #f1f1f1;
+    border-left: 1px solid #eee;
+  }
+  .gkt-book-menu > nav::-webkit-scrollbar-thumb {
+      background-color: #c1c1c1;
+  }
+  .gkt-book-menu > nav::-webkit-scrollbar {
+    width: 5px !important;
+  }
+  .gkt-book-menu hr {
+    padding: 2px;
+  }
+  .gkt-book-menu > nav > ul {
+    padding-left: 0;
+  }
+  .gkt-book-menu > nav ul,
+  .gkt-book-toc ul,
+  .gkt-book-toc ol {
+    list-style: none !important;
+  }
+  @media (min-width: 992px) {
+    .gkt-book-page {
+      width: calc(100% - 32rem);
+    }
+  }
+  .gkt-book-page {
+    min-width: 20rem;
+    transition: .2s ease-in-out;
+    transition-property: opacity;
+  }
+  .gkt-page-tips {
+    color: #555;
+    margin-top: -10px;
+  }
+  .gkt-book-toc {
+    flex: 0 0 16rem;
+    font-size: 0.85em;
+  }
+  .gkt-book .series_links {
+    border: 1px solid #eaecef;
+    padding: 0 15px;
+    background-color: #fff8dc;
+    margin-bottom: 20px;
+    border-radius: 5px;
+  }
+  .gkt-book-menu-icon {
+    padding: 0 15px;
+    font-size: 16px;
+    overflow: hidden;
+    cursor: pointer;
+  }
+  @media (max-width: 767px) {
+    .gkt-book-menu-hidden {
+      margin-left: -16rem;
+    }
+  }
+  .gkt-book-menu-checked {
+    opacity: 0.4;
+    margin-right: -16rem;
+    transition: .2s ease-in-out;
+    transition-property: opacity;
+  }
+</style>
+<div class="gkt-book post-container">
+  <aside class="gkt-book-menu gkt-book-menu-hidden">
+    <nav>
+      
+      <h3 class="text-center">
+        <a class="gkt-book-title" href="https://geektutu.com/post/gee.html">七天用Go从零实现系列</a>
+      </h3>
+      
+      <ul class="col-xs-12 text-center">
+        <li><a href="https://geektutu.com/">极客兔兔</a></li>
+        
+        <li><a target="_blank" rel="noopener" href="https://github.com/geektutu">Github</a></li>
+        
+        <li><a href="https://geektutu.com/feed.xml">RSS</a></li>
+        
+        <li><a target="_blank" rel="noopener" href="https://www.zhihu.com/people/gzdaijie">知乎</a></li>
+        
+        <li><a target="_blank" rel="noopener" href="https://weibo.com/geektutu">微博</a></li>
+        
+      </ul>
+      
+      <hr>
+      
+      <ul>
+        
+        <li>
+          <a>Web框架 - Gee</a>
+          <ul>
+            
+            <li><a href="https://geektutu.com/post/gee.html" class=" ">Day0 序言</a></li>
+            
+            <li><a href="https://geektutu.com/post/gee-day1.html" class=" ">Day1 HTTP 基础</a></li>
+            
+            <li><a href="https://geektutu.com/post/gee-day2.html" class=" ">Day2 上下文</a></li>
+            
+            <li><a href="https://geektutu.com/post/gee-day3.html" class=" ">Day3 前缀树路由</a></li>
+            
+            <li><a href="https://geektutu.com/post/gee-day4.html" class=" ">Day4 分组控制</a></li>
+            
+            <li><a href="https://geektutu.com/post/gee-day5.html" class=" ">Day5 中间件</a></li>
+            
+            <li><a href="https://geektutu.com/post/gee-day6.html" class=" ">Day6 模板 Template</a></li>
+            
+            <li><a href="https://geektutu.com/post/gee-day7.html" class=" ">Day7 错误恢复</a></li>
+            
+          </ul>
+        </li>
+        
+        <li>
+          <a>分布式缓存 - GeeCache</a>
+          <ul>
+            
+            <li><a href="https://geektutu.com/post/geecache.html" class=" ">Day0 序言</a></li>
+            
+            <li><a href="https://geektutu.com/post/geecache-day1.html" class=" ">Day1 LRU 缓存淘汰策略</a></li>
+            
+            <li><a href="https://geektutu.com/post/geecache-day2.html" class=" ">Day2 单机并发缓存</a></li>
+            
+            <li><a href="https://geektutu.com/post/geecache-day3.html" class=" ">Day3 HTTP 服务端</a></li>
+            
+            <li><a href="https://geektutu.com/post/geecache-day4.html" class=" ">Day4 一致性哈希</a></li>
+            
+            <li><a href="https://geektutu.com/post/geecache-day5.html" class=" ">Day5 分布式节点</a></li>
+            
+            <li><a href="https://geektutu.com/post/geecache-day6.html" class=" ">Day6 防止缓存击穿</a></li>
+            
+            <li><a href="https://geektutu.com/post/geecache-day7.html" class=" ">Day7 使用 Protobuf 通信</a></li>
+            
+          </ul>
+        </li>
+        
+        <li>
+          <a>ORM框架 - GeeORM</a>
+          <ul>
+            
+            <li><a href="https://geektutu.com/post/geeorm.html" class=" ">Day0 序言</a></li>
+            
+            <li><a href="https://geektutu.com/post/geeorm-day1.html" class=" ">Day1 database/sql 基础</a></li>
+            
+            <li><a href="https://geektutu.com/post/geeorm-day2.html" class=" ">Day2 对象表结构映射</a></li>
+            
+            <li><a href="https://geektutu.com/post/geeorm-day3.html" class=" ">Day3 记录新增和查询</a></li>
+            
+            <li><a href="https://geektutu.com/post/geeorm-day4.html" class=" ">Day4 链式操作与更新删除</a></li>
+            
+            <li><a href="https://geektutu.com/post/geeorm-day5.html" class=" ">Day5 实现钩子</a></li>
+            
+            <li><a href="https://geektutu.com/post/geeorm-day6.html" class=" ">Day6 支持事务</a></li>
+            
+            <li><a href="https://geektutu.com/post/geeorm-day7.html" class=" ">Day7 数据库迁移</a></li>
+            
+          </ul>
+        </li>
+        
+        <li>
+          <a>RPC框架 - GeeRPC</a>
+          <ul>
+            
+            <li><a href="https://geektutu.com/post/geerpc.html" class="active ">Day0 序言</a></li>
+            
+            <li><a href="https://geektutu.com/post/geerpc-day1.html" class=" ">Day1 服务端与消息编码</a></li>
+            
+            <li><a href="https://geektutu.com/post/geerpc-day2.html" class=" ">Day2 高性能客户端</a></li>
+            
+            <li><a href="https://geektutu.com/post/geerpc-day3.html" class=" ">Day3 服务注册</a></li>
+            
+            <li><a href="https://geektutu.com/post/geerpc-day4.html" class=" ">Day4 超时处理</a></li>
+            
+            <li><a href="https://geektutu.com/post/geerpc-day5.html" class=" ">Day5 支持HTTP协议</a></li>
+            
+            <li><a href="https://geektutu.com/post/geerpc-day6.html" class=" ">Day6 负载均衡</a></li>
+            
+            <li><a href="https://geektutu.com/post/geerpc-day7.html" class=" ">Day7 服务发现与注册中心</a></li>
+            
+          </ul>
+        </li>
+        
+        <li>
+          <a>7days-golang Q &amp; A</a>
+          <ul>
+            
+            <li><a href="https://geektutu.com/post/7days-golang-q1.html" class=" ">接口型函数</a></li>
+            
+          </ul>
+        </li>
+        
+      </ul>
+    </nav>
+  </aside>
+  <div class="gkt-book-page">
+    <div class="hidden-sm hidden-md hidden-lg gkt-book-menu-icon">
+      <label for="book-menu">
+        <svg class="float-left" name="book-menu" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"><path fill="none" d="M0 0h24v24H0V0z"></path><path d="M3 18h18v-2H3v2zm0-5h18v-2H3v2zm0-7v2h18V6H3z"></path></svg>
+      </label>
+      <strong class="float-right">七天用Go从零实现系列</strong>
+    </div>
+    <div class="u-arrow-wrapper hidden-xs" style="left: 276px; width: 798px;">
+        
+        <a class="float-left" href="https://geektutu.com/post/qa-golang-3.html"><i class="u-arrow-left"></i></a>
+        
+        
+        <a class="float-right" href="https://geektutu.com/post/geerpc-day1.html"><i class="u-arrow-right"></i></a>
+        
+    </div>
+    <article class="col-xs-12">
+      <h1>7天用Go从零实现RPC框架GeeRPC</h1>
+       
+      <div class="hidden-lg hidden-md hidden-sm series_links">
+        <p><strong> RPC框架 - GeeRPC系列文章链接：</strong></p>
+        <ul>
+          
+          <li>
+            <a href="https://geektutu.com/post/geerpc.html">7天用Go从零实现RPC框架GeeRPC</a>
+            <span class="post-item-date">(Oct 6, 2020)</span>
+          </li>
+          
+          <li>
+            <a href="https://geektutu.com/post/geerpc-day1.html">动手写RPC框架 - GeeRPC第一天 服务端与消息编码</a>
+            <span class="post-item-date">(Oct 6, 2020)</span>
+          </li>
+          
+          <li>
+            <a href="https://geektutu.com/post/geerpc-day2.html">动手写RPC框架 - GeeRPC第二天 支持并发与异步的客户端</a>
+            <span class="post-item-date">(Oct 7, 2020)</span>
+          </li>
+          
+          <li>
+            <a href="https://geektutu.com/post/geerpc-day3.html">动手写RPC框架 - GeeRPC第三天 服务注册(service register)</a>
+            <span class="post-item-date">(Oct 7, 2020)</span>
+          </li>
+          
+          <li>
+            <a href="https://geektutu.com/post/geerpc-day4.html">动手写RPC框架 - GeeRPC第四天 超时处理(timeout)</a>
+            <span class="post-item-date">(Oct 7, 2020)</span>
+          </li>
+          
+          <li>
+            <a href="https://geektutu.com/post/geerpc-day5.html">动手写RPC框架 - GeeRPC第五天 支持HTTP协议</a>
+            <span class="post-item-date">(Oct 8, 2020)</span>
+          </li>
+          
+          <li>
+            <a href="https://geektutu.com/post/geerpc-day6.html">动手写RPC框架 - GeeRPC第六天 负载均衡(load balance)</a>
+            <span class="post-item-date">(Oct 8, 2020)</span>
+          </li>
+          
+          <li>
+            <a href="https://geektutu.com/post/geerpc-day7.html">动手写RPC框架 - GeeRPC第七天 服务发现与注册中心(registry)</a>
+            <span class="post-item-date">(Oct 8, 2020)</span>
+          </li>
+          
+        </ul>
+      </div>
+       
+      <blockquote>
+        <p>
+          源代码/数据集已上传到
+          <a href="https://github.com/geektutu/7days-golang" target="_blank" rel="noopener">Github - 7days-golang</a>
+        </p>
+      </blockquote>
+      
+      <div class="gkt-article-start"></div>
+      <p><img src="./7天用Go从零实现RPC框架GeeRPC _ 极客兔兔_files/geerpc.jpg" alt="golang RPC framework"></p>
+<h2 id="1-谈谈-RPC-框架"><a href="https://geektutu.com/post/geerpc.html#1-%E8%B0%88%E8%B0%88-RPC-%E6%A1%86%E6%9E%B6" class="headerlink" title="1 谈谈 RPC 框架"></a>1 谈谈 RPC 框架</h2><p>RPC(Remote Procedure Call，远程过程调用)是一种计算机通信协议，允许调用不同进程空间的程序。RPC 的客户端和服务器可以在一台机器上，也可以在不同的机器上。程序员使用时，就像调用本地程序一样，无需关注内部的实现细节。</p>
+<p>不同的应用程序之间的通信方式有很多，比如浏览器和服务器之间广泛使用的基于 HTTP 协议的 Restful API。与 RPC 相比，Restful API 有相对统一的标准，因而更通用，兼容性更好，支持不同的语言。HTTP 协议是基于文本的，一般具备更好的可读性。但是缺点也很明显：</p>
+<ul>
+<li>Restful 接口需要额外的定义，无论是客户端还是服务端，都需要额外的代码来处理，而 RPC 调用则更接近于直接调用。</li>
+<li>基于 HTTP 协议的 Restful 报文冗余，承载了过多的无效信息，而 RPC 通常使用自定义的协议格式，减少冗余报文。</li>
+<li>RPC 可以采用更高效的序列化协议，将文本转为二进制传输，获得更高的性能。</li>
+<li>因为 RPC 的灵活性，所以更容易扩展和集成诸如注册中心、负载均衡等功能。</li>
+</ul>
+<h2 id="2-RPC-框架需要解决什么问题"><a href="https://geektutu.com/post/geerpc.html#2-RPC-%E6%A1%86%E6%9E%B6%E9%9C%80%E8%A6%81%E8%A7%A3%E5%86%B3%E4%BB%80%E4%B9%88%E9%97%AE%E9%A2%98" class="headerlink" title="2 RPC 框架需要解决什么问题"></a>2 RPC 框架需要解决什么问题</h2><p>RPC 框架需要解决什么问题？或者我们换一个问题，为什么需要 RPC 框架？</p>
+<p>我们可以想象下两台机器上，两个应用程序之间需要通信，那么首先，需要确定采用的传输协议是什么？如果这个两个应用程序位于不同的机器，那么一般会选择 TCP 协议或者 HTTP 协议；那如果两个应用程序位于相同的机器，也可以选择 Unix Socket 协议。传输协议确定之后，还需要确定报文的编码格式，比如采用最常用的 JSON 或者 XML，那如果报文比较大，还可能会选择 protobuf 等其他的编码方式，甚至编码之后，再进行压缩。接收端获取报文则需要相反的过程，先解压再解码。</p>
+<p>解决了传输协议和报文编码的问题，接下来还需要解决一系列的可用性问题，例如，连接超时了怎么办？是否支持异步请求和并发？</p>
+<p>如果服务端的实例很多，客户端并不关心这些实例的地址和部署位置，只关心自己能否获取到期待的结果，那就引出了注册中心(registry)和负载均衡(load balance)的问题。简单地说，即客户端和服务端互相不感知对方的存在，服务端启动时将自己注册到注册中心，客户端调用时，从注册中心获取到所有可用的实例，选择一个来调用。这样服务端和客户端只需要感知注册中心的存在就够了。注册中心通常还需要实现服务动态添加、删除，使用心跳确保服务处于可用状态等功能。</p>
+<p>再进一步，假设服务端是不同的团队提供的，如果没有统一的 RPC 框架，各个团队的服务提供方就需要各自实现一套消息编解码、连接池、收发线程、超时处理等“业务之外”的重复技术劳动，造成整体的低效。因此，“业务之外”的这部分公共的能力，即是 RPC 框架所需要具备的能力。</p>
+<h2 id="3-关于-GeeRPC"><a href="https://geektutu.com/post/geerpc.html#3-%E5%85%B3%E4%BA%8E-GeeRPC" class="headerlink" title="3 关于 GeeRPC"></a>3 关于 GeeRPC</h2><p>Go 语言广泛地应用于云计算和微服务，成熟的 RPC 框架和微服务框架汗牛充栋。<code>grpc</code>、<code>rpcx</code>、<code>go-micro</code> 等都是非常成熟的框架。一般而言，RPC 是微服务框架的一个子集，微服务框架可以自己实现 RPC 部分，当然，也可以选择不同的 RPC 框架作为通信基座。</p>
+<p>考虑性能和功能，上述成熟的框架代码量都比较庞大，而且通常和第三方库，例如 <code>protobuf</code>、<code>etcd</code>、<code>zookeeper</code> 等有比较深的耦合，难以直观地窥视框架的本质。GeeRPC 的目的是以最少的代码，实现 RPC 框架中最为重要的部分，帮助大家理解 RPC 框架在设计时需要考虑什么。代码简洁是第一位的，功能是第二位的。</p>
+<p>因此，GeeRPC 选择从零实现 Go 语言官方的标准库 <code>net/rpc</code>，并在此基础上，新增了协议交换(protocol exchange)、注册中心(registry)、服务发现(service discovery)、负载均衡(load balance)、超时处理(timeout processing)等特性。分七天完成，最终代码约 1000 行。</p>
+<h2 id="4-目录"><a href="https://geektutu.com/post/geerpc.html#4-%E7%9B%AE%E5%BD%95" class="headerlink" title="4 目录"></a>4 目录</h2><ul>
+<li>第一天 - <a href="https://geektutu.com/post/geerpc-day1.html">服务端与消息编码</a> | <a href="ghttps://github.com/geektutu/7days-golang/tree/master/ee-rpc/day1-codec" target="_blank">Code</a></li>
+<li>第二天 - <a href="https://geektutu.com/post/geerpc-day2.html">支持并发与异步的客户端</a> | <a href="ghttps://github.com/geektutu/7days-golang/tree/master/ee-rpc/day2-client" target="_blank">Code</a></li>
+<li>第三天 - <a href="https://geektutu.com/post/geerpc-day3.html">服务注册(service register)</a> | <a target="_blank" rel="noopener" href="https://github.com/geektutu/7days-golang/tree/master/gee-rpc/day3-service">Code</a></li>
+<li>第四天 - <a href="https://geektutu.com/post/geerpc-day4.html">超时处理(timeout)</a> | <a href="ghttps://github.com/geektutu/7days-golang/tree/master/ee-rpc/day4-timeout" target="_blank">Code</a></li>
+<li>第五天 - <a href="https://geektutu.com/post/geerpc-day5.html">支持HTTP协议</a> | <a href="ghttps://github.com/geektutu/7days-golang/tree/master/ee-rpc/day5-http-debug" target="_blank">Code</a></li>
+<li>第六天 - <a href="https://geektutu.com/post/geerpc-day6.html">负载均衡(load balance)</a> | <a target="_blank" rel="noopener" href="https://github.com/geektutu/7days-golang/tree/master/gee-rpc/day6-load-balance">Code</a></li>
+<li>第七天 - <a href="https://geektutu.com/post/geerpc-day7.html">服务发现与注册中心(registry)</a> | <a target="_blank" rel="noopener" href="https://github.com/geektutu/7days-golang/tree/master/gee-rpc/day7-registry">Code</a></li>
+</ul>
+<h2 id="附-推荐阅读"><a href="https://geektutu.com/post/geerpc.html#%E9%99%84-%E6%8E%A8%E8%8D%90%E9%98%85%E8%AF%BB" class="headerlink" title="附 推荐阅读"></a>附 推荐阅读</h2><ul>
+<li><a href="https://geektutu.com/post/quick-golang.html">Go 语言简明教程</a></li>
+<li><a href="https://geektutu.com/post/qa-golang.html">Go 语言笔试面试题</a></li>
+</ul>
+
+      
+<script src="./7天用Go从零实现RPC框架GeeRPC _ 极客兔兔_files/qrious.min.js.下载"></script>
+
+
+      <hr>
+      <p>
+        
+        <span class="float-right gkt-page-tips">last updated at 2023-10-31</span>
+      </p>
+    </article>
+    <!-- 赞赏 -->
+    <!--打赏-->
+
+<style>
+    #reward .reward-btn-wrapper {
+        width: 100px;
+        padding-top: 35px;
+        cursor: pointer;
+        margin: 0 auto;
+    }
+
+    #reward .reward-btn {
+        padding: 2px 15px;
+        color: #fff;
+        background-color: #ea6f5a;
+        border-radius: 20px;
+    }
+
+    #reward .reward-code {
+        position: absolute;
+        top: -220px;
+        left: 50%;
+        display: none;
+        width: 360px;
+        height: 240px;
+        margin-left: -180px;
+        padding: 15px 20px;
+        border: 1px solid #e6e6e6;
+        background: #fff;
+        box-shadow: 0 1px 1px 1px #efefef;
+    }
+
+    #reward .reward-code:after,
+    #reward .reward-code:before {
+        position: absolute;
+        content: '';
+        border: 10px solid transparent
+    }
+
+    #reward .reward-code:after {
+        bottom: -19px;
+        left: 50%;
+        margin-left: -10px;
+        border-top-color: #fff
+    }
+
+    #reward .reward-code:before {
+        bottom: -20px;
+        left: 50%;
+        margin-left: -10px;
+        border-top-color: #e6e6e6
+    }
+
+    #reward .qr-code {
+        width: 50%;
+        float: left;
+        padding: 5px;
+    }
+
+    #reward .qr-code p {
+        margin-top: -6px;
+    }
+
+    #reward img {
+        transform: none;
+        -webkit-transform: none;
+        margin-left: 0;
+    }
+
+    #reward img[alt='i'] {
+        width: 20px;
+        height: 20px;
+        z-index: 2;
+        position: absolute;
+        margin: 65px 0 0 65px;
+    }
+
+    #reward img[alt="ali"] {
+        width: 100%;
+        box-sizing: border-box;
+        border: 5px solid #0f9be0;
+    }
+
+    #reward img[alt="wechat"] {
+        width: 100%;
+        box-sizing: border-box;
+        border: 5px solid #3db034;
+    }
+
+    #reward .reward-tip {
+        font-size: 1.2em;
+        margin-bottom: 0;
+        color: #ea6f5a;
+    }
+</style>
+<div id="reward" class="col-xs-12">
+    <div class="reward-btn-wrapper">
+        <div class="reward-btn text-center">赞赏支持</div>
+    </div>
+    <div class="reward-code text-center">
+        <p class="text-center reward-tip"><strong>请我吃胡萝卜 =^_^= </strong></p>
+        <div class="qr-code">
+            <img src="./7天用Go从零实现RPC框架GeeRPC _ 极客兔兔_files/icon.png" alt="i">
+            <img id="reward-ali" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAGQAAABkCAYAAABw4pVUAAAAAXNSR0IArs4c6QAABNJJREFUeF7tnOt22zAMg5f3f+jsNJczJTGtD4bUKAv2tzQtASQIqe5O5/P5/Cf/lkHgFEKW4eKykBCyFh8hZDE+QkgIWQ2BxdZTzpDT6TR8qaqhq9ZQ5Wnj2xiyF5JzFCB7OISQG8ohBJRbOqQBqWp/gONDCMmjAk/WoOYkcqdKbrtOgsPuOYQm6IFD8qjg9d552VgxA4k0VfMnhBi3Ol9DiOpYSIeoFa9WeSUd1XtJh8zCAbksx0KGkCvtFIcQstEmX9khtGLueM2QCDJniPtypO/52bd1SAjZpjGERLJeh1yLCfH6RL6IcyPv/UrJIsCo1jWENAg4LiUdUiCgDt2qIp08xAWRTiB5iDSRYnFxkIc6AeDIpdpWXgIkWQ/JE0IAkgRIkAZdNH4UIWTTJEadLavFkz2SmCV/Y6hW5ArxBGwSE0Kaa3yHWAI2iTlECEk8I0adG2q864Jm7PnBBK32KakKsBofQsSSUgFW4z+WEGej5K7JcVDkGoUc4lY4tD4XCDoYzrhrCiHbvRpCbriQjhrVmXsqjgghHxVUL1GfVeNJ986Qpuq9qlwfkqzZIKmgOuSP6oQQAj7+JoXzsYQQvSSVqrawKi+qG5xxUldJPjRDQsgVAbWgxGPXSzj6G0OyqFGamg4R+00FjJyM1aEuLvlhCaS4SH5VKmnnoA6p5IssPIRQKm4SqV4upkP2Z4tTpJeZVRGiuhHVBKhXJ8TRkVpU96VKnJrfPhiSDpmxiRDSHMRINadDXqVMxe2QZM0Y0sRlqcaCdLKTk6xZXUMIaVAl4KlWl+S0Z0g65BWBkXdosssibe4MdeKUCADk5qDSeNVAqJ2zt8cQckNHLSJiYo6cSULIJxLiyIgzc44Mxd5aSSf0cvz8nMjmNNvrLDCE7J9PDrmsEOI7K9rtvzpDSAurjsWRoCNDd6s41TUv47JCSF9r0iF9jLoRb+0Q8nLnCtp5lhxaHZNB8hN8hkoWeaEDqvMsASyEgD+WIUBSl3LP5cRX1y7qOkke2/YSZ6I6H/WQNaPKu4PiKYAYFEJgCGkQUAunqnjSjSTmJz9yWWrrqRtNh/xDGBGiAkarQZEJNScxB9X7VVkm8XSvIWQDKQKwWiAhBHyk8TUdQtwFOc84eWhFjogb9ZtHPNTVGeIAqb5LNRAjCHjOEUKKw+YMsEnOXyGELMSJUSWr6jrVkpNDpTrUyRqoCZC/fndIGAWqQ2YIKRBwQHWe/VhCZgxL5/6HWFRCFNkXWaeahyoLOhjSZL04slEia5Vmh5AeA08/DyF9wFCHENeharNazWQNTk7qgu77VOP7VFwjQsgNKRVgNT6ENAgQqVQBVuOnEaK6C7JwVWrIUCdXMBQkJY5I614+WbJCyD49IcT4iEKpfBr7XxBSnT2I9pNnHQeoXhw6cnrIZc2QLAKqOotIpZJf84YQ8Js+MrBDiGgzSVeQGNKxlWSR6icxZL6QAllGshw5CiHif7XngJ0OaRAgQJJWJYNTlRQyQyq3U5FM3BHZL8mzJ1/ywVBdVAi5IkYLPIRsVNiMQT6UELUrVAki+ckhcdSAJ+sh928kz3MM6pAjibeecSovhAA3pRIVQvqIve0zoP7SvjMihCzGewgJIYshsNhy0iEhZDEEFltOOmQxQv4CsLYDXC0W9dQAAAAASUVORK5CYII=" alt="ali">
+            <p><small>支付宝</small></p>
+        </div>
+        <div class="qr-code">
+            <img src="./7天用Go从零实现RPC框架GeeRPC _ 极客兔兔_files/icon.png" alt="i">
+            <img id="reward-wechat" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAGQAAABkCAYAAABw4pVUAAAAAXNSR0IArs4c6QAABMdJREFUeF7tnet2AjEIhOv7P7Q93tpUF/NNIBq305+VJWQGBpL1tIfj8Xj88s8yCBxMyDJcnAMxIWvxYUIW48OEmJDVEFgsnrCHHA6H8lDJQNeu29qT30cBR+tGe4zWrQLkGQ4mZANlE9KAQipBBWx3FUKkJirnDMAqkG0MRO6IBEXxk2dbG+oHSZYJuUA7A4d7Yk1IJ9VpZvcqhvqRCSHTV5VckJInk1LkJ5K4zLpZ2TQhVwRJv8oME66Q4BI7U1G7JiQjfUQWMnL0LyXLhGyPAW/rISZkMUKILPRGydPntFnefGUSYdc9xIS4Qs4I7K5CiIyQ7CfjZwY8Eie5ClElMVqX+pGbOtmoCXlEyYSAzPnYCgF7Qybkjqvqun6GH7RJYLTkG8MZgM0mHGCNTExIc6+VSQSENjAaIgT4LTNRp6nMwrS5ZtbIPLvENxdNyC+FJiSTzhOeRecQdV31zqf1rzbmKLZ3+SHrPsPThHSyjQCsDgompPkWplq9yxASXX9USUTmHbYKkhozkVBiQ+K8jw01dXUKypSw+iyxNyFAIlwh22kiN3VShqSi1JKPJDQTD7lcJOsSeadrmRBhpienfPKep3TKymSkquUzZC2qTMLLWwmJAqySIxUY0rwzyULIJwmlStzQlEU0kgSbKWcTEiDsCnkEhlRXaVNXT7dEj4nPKgki1aVKqCrpJkR8KWVCAsDU8wnpS7uoEDItEDBUP7S0e7JIel1GNnvrnz4nkjs0ZVVlGPFjQgACBEiiwcQPCIckZ+oro0Q2SRClFULkaIYNkRECWGYUJYmjEkLsTzZld1kEJGJjQoJUmpH9JqRfJ/ILqozGZyYfsi65/JtxDZSRx9Ipq8/3XwsT0kfMFdLH6MdCnZrUisVN/ZWNNsJHjUH1UyWJqgpgycqMfplMUoEUEvxsqsZGbhrUvvSMfDT2qtmpblrNKmKvEvtRFUI2p2ZS5JNUpkq4msFq1RF8aD9BFUIWNCGPKI0kjgmpKocNP9MIIQcfsq+RAInfmw2VhS2fGalUFeTZnlCFmJALhJnhhiaWCbkitesKISMkzZieHGVkSp30yLRG1KT0HJIJSiWBTG4mpEGJXNFnSDAhAdjqdESIIjaZaqzyTxJKxad0yiISQcAgNibEFUIK4sHmJRUyFJnwEKk04k4dVzNVl3mW7he9oCLAqDY0wJ5fE9JDCH5uQraBQid1iHHXjFw9zLbJ+Ce9IptoJmQjjTLAm5Dgf2WpoLa8qM8S+658XA1QhWTupjIZQ57NnGcyQM6I7cSJCbllZvDHDqLMNiEv/PcTRBGWIYR844NIATk/RLpOsjayIdfjVO9H7Uqv303IKA2/z5mQBkNXiPiXgWZLGekPRBKJH3UCHJqyXilZ6qm6CsgqPyYkQJJMRKQzqH52TQi5+iZTGQFJtamq5I+SLBMCmjGZ9UmTJucWEyJeJaiNMDMcEGlS4yE9RPWp9pwhyVIDJxWiVpoJCe6RCDkm5IISObfgCiHAExu1V0R9o2qqySRLVKUjMvVnn8eAOqLxhISqwFXwSEaqPlVpJTHc+0TvQ1TgZwSugkfAUH3O2BcmpIoE+9EQeNv3srQw/4+1CVmMaxNiQhZDYLFwXCEmZDEEFgvnG2ucnFzI1EP6AAAAAElFTkSuQmCC" alt="wechat">
+            <p><small>微信</small></p>
+        </div>
+    </div>
+</div>
+<script>
+    (function (window, document) {
+        var aliQr = new QRious({ value: 'HTTPS://QR.ALIPAY.COM/FKX060337TUXBAX9LIFJE8' });
+        var wechatQr = new QRious({ value: 'wxp://f2f0qgGBlfD1nZXjvBjievxB0z0fc0W2sBq5' });
+        document.querySelector('#reward-ali').src = aliQr.toDataURL();
+        document.querySelector('#reward-wechat').src = wechatQr.toDataURL();
+
+        var rewardBtn = document.querySelector('#reward .reward-btn-wrapper');
+        var qrCode = document.querySelector('#reward .reward-code')
+        var activeFunc = function (e) {
+            qrCode.style.display = 'block';
+        }
+        var hideFunc = function (e) {
+            qrCode.style.display = 'none';
+        }
+
+        rewardBtn.addEventListener('mouseenter', activeFunc, false)
+        rewardBtn.addEventListener('mouseover', activeFunc, false)
+        rewardBtn.addEventListener('mouseleave', hideFunc, false)
+        qrCode.addEventListener('mouseenter', activeFunc, false)
+        qrCode.addEventListener('mouseover', activeFunc, false)
+        qrCode.addEventListener('mouseleave', hideFunc, false)
+    })(window, document);
+</script>
+
+    
+<div class="col-xs-12 text-center" style="margin-top: 30px;">
+    
+    <a style="display:inline-block;" target="_blank" rel="noopener" href="https://github.com/geektutu" title="Github"><img style="padding:5px;width:30px;margin-left:0;transform:none;-webkit-transform:none;" src="./7天用Go从零实现RPC框架GeeRPC _ 极客兔兔_files/github.png"></a>
+    
+    <a style="display:inline-block;" href="https://geektutu.com/feed.xml" title="RSS"><img style="padding:5px;width:30px;margin-left:0;transform:none;-webkit-transform:none;" src="./7天用Go从零实现RPC框架GeeRPC _ 极客兔兔_files/rss.jpg"></a>
+    
+    <a style="display:inline-block;" target="_blank" rel="noopener" href="https://www.zhihu.com/people/gzdaijie" title="知乎"><img style="padding:5px;width:30px;margin-left:0;transform:none;-webkit-transform:none;" src="./7天用Go从零实现RPC框架GeeRPC _ 极客兔兔_files/zhihu.png"></a>
+    
+    <a style="display:inline-block;" target="_blank" rel="noopener" href="https://weibo.com/geektutu" title="微博"><img style="padding:5px;width:30px;margin-left:0;transform:none;-webkit-transform:none;" src="./7天用Go从零实现RPC框架GeeRPC _ 极客兔兔_files/weibo.jpg"></a>
+    
+</div>
+
+    <!-- 评论 -->
+    
+    <div class="col-xs-12">
+      
+<div class="col-xs-12 padding-0">
+    <div id="gitalk-container"><div class="gt-container" style="margin-top: 50px;"><div class="gt-meta"><span class="gt-counts"><a class="gt-link gt-link-counts" href="https://github.com/geektutu/blog/issues/90" target="_blank" rel="noopener noreferrer">23</a> 条评论</span><div class="gt-user"><div class="gt-user-inner"><span class="gt-user-name">未登录用户</span><span class="gt-ico gt-ico-arrdown"><span class="gt-svg"><svg viewBox="0 0 1024 1024" xmlns="http://www.w3.org/2000/svg" p-id="1619"><path d="M511.872 676.8c-0.003 0-0.006 0-0.008 0-9.137 0-17.379-3.829-23.21-9.97l-251.277-265.614c-5.415-5.72-8.743-13.464-8.744-21.984 0-17.678 14.33-32.008 32.008-32.008 9.157 0 17.416 3.845 23.25 10.009l228.045 241.103 228.224-241.088c5.855-6.165 14.113-10.001 23.266-10.001 8.516 0 16.256 3.32 21.998 8.736 12.784 12.145 13.36 32.434 1.264 45.233l-251.52 265.6c-5.844 6.155-14.086 9.984-23.223 9.984-0.025 0-0.051 0-0.076 0z" p-id="1620"></path></svg></span></span></div></div></div><div class="gt-error">Error: Request aborted</div><div class="gt-header"><a class="gt-avatar-github"><span class="gt-ico gt-ico-github"><span class="gt-svg"><svg viewBox="0 0 1024 1024" version="1.1" xmlns="http://www.w3.org/2000/svg">
+  <path d="M64 524C64 719.602 189.356 885.926 364.113 947.017 387.65799 953 384 936.115 384 924.767L384 847.107C248.118 863.007 242.674 773.052 233.5 758.001 215 726.501 171.5 718.501 184.5 703.501 215.5 687.501 247 707.501 283.5 761.501 309.956 800.642 361.366 794.075 387.658 787.497 393.403 763.997 405.637 743.042 422.353 726.638 281.774 701.609 223 615.67 223 513.5 223 464.053 239.322 418.406 271.465 381.627 251.142 320.928 273.421 269.19 276.337 261.415 334.458 256.131 394.888 302.993 399.549 306.685 432.663 297.835 470.341 293 512.5 293 554.924 293 592.81 297.896 626.075 306.853 637.426 298.219 693.46 258.054 747.5 262.966 750.382 270.652 772.185 321.292 753.058 381.083 785.516 417.956 802 463.809 802 513.5 802 615.874 742.99 701.953 601.803 726.786 625.381 750.003 640 782.295 640 818.008L640 930.653C640.752 939.626 640 948.664978 655.086 948.665 832.344 888.962 960 721.389 960 524 960 276.576 759.424 76 512 76 264.577 76 64 276.576 64 524Z"></path>
+</svg>
+</span></span></a><div class="gt-header-comment"><textarea class="gt-header-textarea " placeholder="说点什么" style="overflow: hidden; overflow-wrap: break-word; resize: none; height: 72px;"></textarea><div class="gt-header-preview markdown-body hide"></div><div class="gt-header-controls"><a class="gt-header-controls-tip" href="https://guides.github.com/features/mastering-markdown/" target="_blank" rel="noopener noreferrer"><span class="gt-ico gt-ico-tip"><span class="gt-svg"><svg viewBox="0 0 1024 1024" version="1.1" xmlns="http://www.w3.org/2000/svg">
+  <path d="M512 366.949535c-16.065554 0-29.982212 13.405016-29.982212 29.879884l0 359.070251c0 16.167882 13.405016 29.879884 29.982212 29.879884 15.963226 0 29.879884-13.405016 29.879884-29.879884L541.879884 396.829419C541.879884 380.763865 528.474868 366.949535 512 366.949535L512 366.949535z" p-id="3083"></path>
+  <path d="M482.017788 287.645048c0-7.776956 3.274508-15.553912 8.80024-21.181973 5.525732-5.525732 13.302688-8.80024 21.181973-8.80024 7.776956 0 15.553912 3.274508 21.079644 8.80024 5.525732 5.62806 8.80024 13.405016 8.80024 21.181973 0 7.776956-3.274508 15.656241-8.80024 21.181973-5.525732 5.525732-13.405016 8.697911-21.079644 8.697911-7.879285 0-15.656241-3.274508-21.181973-8.697911C485.292295 303.301289 482.017788 295.524333 482.017788 287.645048L482.017788 287.645048z" p-id="3084"></path>
+  <path d="M512 946.844409c-239.8577 0-434.895573-195.037873-434.895573-434.895573 0-239.8577 195.037873-434.895573 434.895573-434.895573 239.755371 0 434.895573 195.037873 434.895573 434.895573C946.895573 751.806535 751.755371 946.844409 512 946.844409zM512 126.17088c-212.740682 0-385.880284 173.037274-385.880284 385.777955 0 212.740682 173.037274 385.777955 385.880284 385.777955 212.740682 0 385.777955-173.037274 385.777955-385.777955C897.777955 299.208154 724.740682 126.17088 512 126.17088z" p-id="3085"></path>
+</svg>
+</span><span class="gt-ico-text">支持 Markdown 语法</span></span></a><button class="gt-btn gt-btn-preview"><span class="gt-btn-text">预览</span></button><button class="gt-btn gt-btn-login"><span class="gt-btn-text">使用 GitHub 登录</span></button></div></div></div><div class="gt-comments"><div style="position: relative;"></div><p class="gt-comments-null">来做第一个留言的人吧！</p></div></div></div>
+    <div id="gitalk-related" class="dis-wrapper"><div class="dis-item"><a href="https://geektutu.com/post/about.html?utm_source=gitalk" class="dis-item-url"><h3 class="dis-item-title">关于我</h3><p class="dis-item-des">24 评论 ● 4月前</p><div class="dis-item-content"><img class="dis-item-img" src="./7天用Go从零实现RPC框架GeeRPC _ 极客兔兔_files/38663727" alt="icon"><p><b><span class="dis-item-user">lling1234</span></b>&nbsp;——&nbsp;666</p></div></a></div><div class="dis-item"><a href="https://geektutu.com/post/hpg-concurrency-control.html?utm_source=gitalk" class="dis-item-url"><h3 class="dis-item-title">控制协程(goroutine)的并发数量</h3><p class="dis-item-des">8 评论 ● 4月前</p><div class="dis-item-content"><img class="dis-item-img" src="./7天用Go从零实现RPC框架GeeRPC _ 极客兔兔_files/4230959" alt="icon"><p><b><span class="dis-item-user">kuchaguangjie</span></b>&nbsp;——&nbsp;关于 第三方 goroutine pool. https://github.com/Jeffail/tunny 这个 好像几年没 更新了. https://github.com/alitto/pond 这个 比较新, 但是 貌似 挺好用.</p></div></a></div><div class="dis-item"><a href="https://geektutu.com/post/geerpc-day4.html?utm_source=gitalk" class="dis-item-url"><h3 class="dis-item-title">动手写RPC框架 - GeeRPC第四天 超时处理(timeout)</h3><p class="dis-item-des">32 评论 ● 1月前</p><div class="dis-item-content"><img class="dis-item-img" src="./7天用Go从零实现RPC框架GeeRPC _ 极客兔兔_files/120174182" alt="icon"><p><b><span class="dis-item-user">rfhfwe</span></b>&nbsp;——&nbsp;ch := make(chan clientResult)，这个channel不需要close掉吗</p></div></a></div><div class="dis-item"><a href="https://geektutu.com/post/geecache-day4.html?utm_source=gitalk" class="dis-item-url"><h3 class="dis-item-title">动手写分布式缓存 - GeeCache第四天 一致性哈希(hash)</h3><p class="dis-item-des">40 评论 ● 26天前</p><div class="dis-item-content"><img class="dis-item-img" src="./7天用Go从零实现RPC框架GeeRPC _ 极客兔兔_files/50390413" alt="icon"><p><b><span class="dis-item-user">zzzzzzyang</span></b>&nbsp;——&nbsp;你给出的代码很全面，但是我不明白你这里为什么同时使用了原子操作和锁，是否只需要其中一个即可？ 时间有点久远了，不知道你还不会不会回复:) @yuanyb 改成了基于写时复制的并发读写的形式，添加了 Remove 操作（来自评论区） ```go type Hash func(data []byte)uint32 type Map struct { sync.Mutex // 哈希函数 hash Hash // 虚拟节点倍数 replicas int // 原子地存取 keys 和 hashMap values atomic.Value // values } type values struct { // 哈希环 keys []int // 虚拟节点与真实节点的映射 hashMap map[int]string } func NewMap(replicas int, hashFunc Hash) *Map { m := &amp;Map{ replicas: replicas, hash: hashFunc, } m.values.Store(&amp;values{ hashMap: make(map[int]string), }) if m.hash == nil { m.hash = crc32.ChecksumIEEE } return m } // 添加节点 func (m *Map) Add(keys ...string) { m.Lock() defer m.Unlock() newValues := m.loadValues() for _, key := range keys { // 对每个 key(节点) 创建 m.replicas 个虚拟节点 for i := 0; i m.replicas; i++ { hash := int(m.hash([]byte(strconv.Itoa(i) + key))) newValues.keys = append(newValues.keys, hash) newValues.hashMap[hash] = key } } sort.Ints(newValues.keys) m.values.Store(newValues) } func (m *Map) Get(key string) string { values := m.loadValues() if len(values.keys) == 0 { return "" } hash := int(m.hash([]byte(key))) idx := sort.Search(len(values.keys), func(i int) bool { return values.keys[i] = hash }) // 如果 idx == len(m.keys)，说明应选择 m.keys[0]， // 因为 m.keys 是一个环状结构，用取余数的方式来处理这种情况 return values.hashMap[values.keys[idx % len(values.keys)]] } func (m *Map) Remove(key string) { m.Lock() defer m.Unlock() newValues := m.loadValues() for i := 0; i m.replicas; i++ { hash := int(m.hash([]byte(strconv.Itoa(i) + key))) idx := sort.SearchInts(newValues.keys, hash) if newValues.keys[idx] != hash { return } newValues.keys = append(newValues.keys[:idx], newValues.keys[idx+1:]...) delete(newValues.hashMap, hash) } m.values.Store(newValues) } func (m *Map) loadValues() *values { return m.values.Load().(*values) } func (m *Map) copyValues() *values { oldValues := m.loadValues() newValues := &amp;values{ keys: make([]int, len(oldValues.keys)), hashMap: make(map[int]string), } copy(newValues.keys, oldValues.keys) for k, v := range oldValues.hashMap { newValues.hashMap[k] = v } return newValues } ```</p></div></a></div><p class="dis-divide"><a href="https://geektutu.com/post/blog-experience-7.html">Gitalk Plus</a></p></div>
+</div>
+
+<link rel="stylesheet" href="./7天用Go从零实现RPC框架GeeRPC _ 极客兔兔_files/gitalk.css">
+
+
+<script src="./7天用Go从零实现RPC框架GeeRPC _ 极客兔兔_files/gitalk.min.js.下载"></script>
+
+<script>
+    window.addEventListener('load', function () {
+        function renderCommentUrl(data) {
+            var url = (data[window.location.pathname] || {}).url
+            url && getDom('#gitalk-container button').addEventListener('click', function (e) { window.open(url)})
+            url || (getDom('#gitalk-container').style.display = 'none')
+        }
+        const gitalk = new Gitalk({
+            clientID: 'c1fdd456a4caae5f7df0',
+            clientSecret: 'b2674451e21feae50520f99337ec15d2aebe7879',
+            accessToken: '513dc2f1e6df8c07a12fbf1547874f54679d9712',
+            repo: 'blog',
+            owner: 'geektutu',
+            admin: ['geektutu'],
+            id: window.location.pathname,
+            distractionFreeMode: false
+        });
+        fetch("https://api.github.com/user").then(function(resp){
+            gitalk.render('gitalk-container');
+        }).catch(function(e){
+            fetch('/tool/issues.json').then(function (r) { return r.json() }).then(renderCommentUrl).catch(function (e) { })
+        })
+        getDom('#gitalk-container').addEventListener('click', function (e) {
+            e && e.stopPropagation && e.stopPropagation();
+        });
+    })
+</script>
+<script>
+    window.addEventListener('load', function () {
+        function render(comments) {
+            var template = '<a href="${comment.url}?utm_source=gitalk" class="dis-item-url"><h3 class="dis-item-title">${comment.title}</h3>' +
+                '<p class="dis-item-des">${comment.count} 评论 ● ${comment.date}</p>' +
+                '<div class="dis-item-content"><img class="dis-item-img" src="${comment.icon}" alt="icon"><p><b><span class="dis-item-user">${comment.user}</span></b>&nbsp;——&nbsp;${comment.body}</p></div>' +
+                '</a>'
+
+            var wrapper = getDom('#gitalk-related');
+            comments = shuffle(comments);
+            comments.slice(0, 4).forEach(function (c) {
+                var div = document.createElement('div');
+                div.classList.add('dis-item');
+                div.innerHTML = template.replace("${comment.url}", c.url)
+                    .replace("${comment.title}", c.title)
+                    .replace("${comment.count}", c.count)
+                    .replace("${comment.date}", c.date)
+                    .replace("${comment.icon}", c.icon)
+                    .replace("${comment.user}", c.user)
+                    .replace("${comment.body}", c.body)
+                wrapper.appendChild(div)
+            })
+            var p = document.createElement('p')
+            p.innerHTML = '<a href="https://geektutu.com/post/blog-experience-7.html">Gitalk Plus</a>';
+            p.classList.add('dis-divide');
+            wrapper.appendChild(p);
+            wrapper.classList.add('dis-wrapper')
+        }
+        function shuffle(a) {
+            for (var i = a.length - 1; i > 0; i--) {
+                var j = Math.floor(Math.random() * (i + 1));
+                [a[i], a[j]] = [a[j], a[i]];
+            }
+            return a;
+        }
+        fetch('/tool/comments.json').then(function (r) { return r.json() }).then(render).catch(function (e) { })
+    })
+</script>
+
+    </div>
+    
+  </div>
+  <aside class="gkt-book-toc hidden-xs hidden-sm">
+    <div style="clear: both"></div>
+    <div class="gkt-sidebar-wrapper">
+      <!-- Table of Contents -->
+<div id="sidebar-toc">
+  <!-- TOC  -->
+  
+  
+  <ol class="toc-nav"><li class="toc-nav-item toc-nav-level-2"><a class="toc-nav-link" href="https://geektutu.com/post/geerpc.html#1-%E8%B0%88%E8%B0%88-RPC-%E6%A1%86%E6%9E%B6"><span class="toc-nav-text">1 谈谈 RPC 框架</span></a></li><li class="toc-nav-item toc-nav-level-2"><a class="toc-nav-link" href="https://geektutu.com/post/geerpc.html#2-RPC-%E6%A1%86%E6%9E%B6%E9%9C%80%E8%A6%81%E8%A7%A3%E5%86%B3%E4%BB%80%E4%B9%88%E9%97%AE%E9%A2%98"><span class="toc-nav-text">2 RPC 框架需要解决什么问题</span></a></li><li class="toc-nav-item toc-nav-level-2"><a class="toc-nav-link" href="https://geektutu.com/post/geerpc.html#3-%E5%85%B3%E4%BA%8E-GeeRPC"><span class="toc-nav-text">3 关于 GeeRPC</span></a></li><li class="toc-nav-item toc-nav-level-2"><a class="toc-nav-link" href="https://geektutu.com/post/geerpc.html#4-%E7%9B%AE%E5%BD%95"><span class="toc-nav-text">4 目录</span></a></li><li class="toc-nav-item toc-nav-level-2"><a class="toc-nav-link" href="https://geektutu.com/post/geerpc.html#%E9%99%84-%E6%8E%A8%E8%8D%90%E9%98%85%E8%AF%BB"><span class="toc-nav-text">附 推荐阅读</span></a></li></ol>
+  
+</div>
+
+<script>
+  (function () {
+    var h2 = document.querySelectorAll('article h2');
+    var h3 = document.querySelectorAll('article h3');
+    var linkList = document.querySelectorAll('#sidebar-toc a');
+
+    function findLinkElement(name) {
+      for (var i = 0; i < linkList.length; i++) {
+        var items = linkList[i].href.split('#');
+        if (items && items[items.length - 1] === encodeURIComponent(name)) {
+          return i;
+        }
+      }
+      return -1;
+    }
+
+    function activeLink(titleList) {
+      var scrollTop = document.documentElement.scrollTop || document.body.scrollTop;
+      for (var i = titleList.length - 1; i >= 0; i--) {
+        if (scrollTop - titleList[i].offsetTop > 0) {
+          var index = findLinkElement(titleList[i].id);
+          index != -1 && linkList[index].classList.add('gkt-sidebar-active');
+          break;
+        }
+      }
+    }
+
+    window.addEventListener("scroll", function (e) {
+      [].slice.call(linkList).forEach(function (link) {
+        link.classList.remove('gkt-sidebar-active');
+      })
+      activeLink(h2);
+    })
+  })();
+</script>
+    </div>
+  </aside>
+</div>
+<script>
+    (function () {
+        function resizeUArrow() {
+            var s = getDom('.u-arrow-wrapper').style
+            var pc = getDom('.gkt-book-page')
+            s.left = getPosition(pc).x - 15 + 'px';
+            s.width = pc.clientWidth + 30 + 'px';
+        }
+        resizeUArrow()
+        window.addEventListener('resize', resizeUArrow);
+        var nav = getDom('.gkt-book-menu nav');
+        var key = 'gkt_book_七天用Go从零实现系列_' + parseInt(new Date().getTime()/1000/3600/24/7)
+        nav.scrollTo(0, localStorage.getItem(key) * 1)
+        nav.addEventListener('scroll', function(){ localStorage.setItem(key, nav.scrollTop) })
+    })();
+    (function(){
+      getDom(".gkt-book-menu-icon").addEventListener('click', function() {
+        var menu = getDom(".gkt-book-menu").classList
+        var article = getDom(".gkt-book-page").classList
+        if (menu.contains("gkt-book-menu-hidden")) {
+          menu.remove('gkt-book-menu-hidden')
+          article.add('gkt-book-menu-checked')
+        } else {
+          menu.add('gkt-book-menu-hidden')
+          article.remove('gkt-book-menu-checked')
+        }
+      })
+    })();
+</script>
+
+
+    
+
+</main>
+    </div>
+    <style>
+    img#go-top {
+        position: fixed;
+        bottom: 100px;
+        width: 50px;
+        cursor: pointer;
+        z-index: 9999;
+    }
+</style>
+<img id="go-top" src="./7天用Go从零实现RPC框架GeeRPC _ 极客兔兔_files/top.png" class="hidden-xs" style="display: none; right: 10px;">
+<script>
+    (function () {
+        var goTop = document.getElementById('go-top');
+        var mainContainer = document.querySelector('.main-container');
+        
+        goTop.addEventListener('click', function () {
+            window.scroll(0, 0);
+        }, false);
+        window.addEventListener('scroll', function () {
+            var right = document.body.offsetWidth - mainContainer.getBoundingClientRect().right;
+            var scrollTop = document.documentElement.scrollTop || document.body.scrollTop;
+            goTop.style.right = right + 10 + 'px'
+            scrollTop > 700 && (goTop.style.display = "block");
+            scrollTop <= 700 && (goTop.style.display = "none");
+        });
+    })();
+</script>
+    <style>
+    #geektutu-click-img-container {
+        position: fixed;
+        left: 0;
+        top: 0;
+        text-align: center;
+        width: 100%;
+        display: none;
+        z-index: 9999;
+    }
+
+    #geektutu-click-img-container img {
+        object-fit: contain;
+        background: #eaecef;
+        padding: 15px;
+        border-radius: 10px;
+        height: auto;
+        width: auto;
+        vertical-align: middle;
+    }
+</style>
+
+
+<div id="geektutu-click-img-container">
+    <img src="https://geektutu.com/post/geerpc.html" alt="Big Image">
+</div>
+
+<script>
+    (function () {
+        var container = document.querySelector('#geektutu-click-img-container')
+        var targetImg = container.querySelector('img')
+        var imgs = document.querySelectorAll('article img');
+        targetImg.addEventListener('click', function (e) {
+            container.style.display = 'none';
+            e && e.stopPropagation && e.stopPropagation();
+        }, false);
+
+        for (var i = 0; i < imgs.length; ++i) {
+            var img = imgs[i];
+            img.addEventListener('click', (function (src, rate) {
+                return function (e) {
+                    e && e.stopPropagation && e.stopPropagation();
+                    if (window.innerWidth < 980) {
+                        return
+                    }
+                    targetImg.style.height = targetImg.style.width = 'auto';
+                    if (window.innerWidth / window.innerHeight > rate) {
+                        targetImg.style.height = (window.innerHeight - 20) + 'px';
+                    } else {
+                        targetImg.style.width = (window.innerWidth - 20) + 'px';
+                    }
+                    container.style.height = window.innerHeight + 'px'
+                    container.style.lineHeight = window.innerHeight + 'px'
+                    container.style.display = 'block';
+                    targetImg.src = src;
+                };
+            }(img.src, img.width / img.height)), false)
+        }
+    })();
+</script>
+    <!-- Footer -->
+    <!-- Footer -->
+<style>
+    footer {
+        width: 100%;
+        line-height: 1.5;
+        padding: 20px;
+    }
+
+    footer a {
+        color: #333;
+        text-decoration: none;
+    }
+
+    .footer-hexo img {
+        height: 20px;
+        margin-bottom: -5px;
+    }
+
+    .footer-hexo a {
+        color: #337ab7;
+    }
+</style>
+<footer class="text-center col-xs-12">
+    <p>
+        <small>© 2023 - 极客兔兔 - </small>
+        <small>
+            <a target="_blank" rel="nofollow noopener" href="http://beian.miit.gov.cn/">沪ICP备18001798号-1</a>
+        </small>
+    </p>
+    <p class="footer-hexo">
+        <!-- 但若直接使用或修改主题，请务必保留这段声明 -->
+        <small>Powered by <a target="_blank" href="https://hexo.io/">Hexo</a> | Theme
+            <a target="_blank" href="https://geektutu.com/">Geektutu</a>
+            <a target="_blank" rel="noopener" href="https://github.com/geektutu/hexo-theme-geektutu">
+                <img src="data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wCEAAYGBgYHBgcICAcKCwoLCg8ODAwODxYQERAREBYiFRkVFRkVIh4kHhweJB42KiYmKjY+NDI0PkxERExfWl98fKcBBgYGBgcGBwgIBwoLCgsKDw4MDA4PFhAREBEQFiIVGRUVGRUiHiQeHB4kHjYqJiYqNj40MjQ+TERETF9aX3x8p//CABEIACIAUAMBIgACEQEDEQH/xAAcAAABBAMBAAAAAAAAAAAAAAAAAQQFBwIDBgj/2gAIAQEAAAAA9KrHSgAYL5/z6zZGuJd12uugbhq3uKtmuRtix20IS7lTLAfAAAn/xAAUAQEAAAAAAAAAAAAAAAAAAAAA/9oACAECEAAAAAAB/8QAFAEBAAAAAAAAAAAAAAAAAAAAAP/aAAgBAxAAAAAAAf/EADEQAAICAQIEBQEGBwAAAAAAAAECAwQFAAYREhORBxQhUlQxQVFic5KxJDJCYYGC0f/aAAgBAQABPwCFHnjWUzuvN6hV4cANSRLGjO9yRVUcSzMoA7jVXJYe5N0a2dhmk9kc0bN2GvLN8mbuNeWb5M3ca8s3yZu415Y/Jm7jXlm+TN3H/NeVPyZu40vOk3TZywK8wJ+v3EHVM/wsI/Dq2lrxN3Nnca16eti8chSAIoMbzByhMwP14kHVfwIiSaF5c96J6kwwCOTnHsYk8uvCrdmQy1TI4rJuz3cZLyGR/wCd4+YoOf8AEpUjXitubLYPG4paFsUxcuiGe7yc5gTW3LW44szXmobsi3Dhmic2+Z4+vCVH9CpraPiQ+QvbgTJrPFBWd5YpWrmNIIEXiRO32Pqt4p7cnfHk18lFBdmEVW1LVdIZGOrniTt6plrWKaO69yCykDRxwF+LMAewB0Txtr+Sf31VI8tEPw62fZt7N3Humtbpzz13ucX6CGSWMSuzpLyD1eNgeUka3PuvHbaxq3biTMHfkiSNCS78CwU+3Xg7Vu3MhuTcU6cq3Zemn3Eh2dv8Lzcut+29x1atKbHYqLJUhLwyNMwiZ3j9yDWOxUOV3tgb+3No5LDx1pi9+aeIwRlNY6bc+Jv+IFGrhLxtXJZ7VKcw81diiAAEn0JOrkWZyNfbEr0tz27UGQgkuGzXdIIvyowq99bRxk9ffO/L81SZBPZgEEroQroIxxMZOgeNsfkn99QypHGqO4Vl9CDrN4LDZkwyzyyQ2IgRHZrzGCZVP1XnQglT9oOtw4LC7iqV6uRkZoYpxKFSQpzFRw4EjVRMfSrQ1qqwxQxKFjjTgFUD7BoWYR6iVe+mtxt9Zwf9teaj4AdccPu5tedX5A/VrzUR+sy/q1CwksF19VEfDj/cnQRW+qg66cfsXtrpx+xe2unH7F7a6cfsXtrpx+xe2unH7F7a6cfsXtoxx+xe2gAAOA1//8QAFBEBAAAAAAAAAAAAAAAAAAAAMP/aAAgBAgEBPwB//8QAFBEBAAAAAAAAAAAAAAAAAAAAMP/aAAgBAwEBPwB//9k=" alt="Github Star">
+            </a>
+        </small>
+    </p>
+    
+    <p>
+        <small>
+            <span id="busuanzi_container_site_pv" style="display: inline;">👁<span id="busuanzi_value_site_pv">4598300</span></span> &nbsp;
+            <span id="busuanzi_container_page_pv" style="display: inline;">📚<span id="busuanzi_value_page_pv">68565</span></span>
+        </small>
+    </p>
+    
+    
+
+</footer>
+
+
+<script>
+    window.addEventListener('load', function () {
+        globalAddScript('//busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js');
+    })
+</script>
+
+<!-- Baidu Tongji -->
+
+<script>
+    window.addEventListener('load', function () {
+        var _hmt = _hmt || [];
+        globalAddScript('//hm.baidu.com/hm.js?1a0ec38c52c08db815b0046c2783b1aa')
+    })
+</script>
+
+
+
+<!-- baidu auto push for seo -->
+<script>
+    window.addEventListener('load', function () {
+        var src = 'http://push.zhanzhang.baidu.com/push.js'
+        var curProtocol = window.location.protocol.split(':')[0];
+        if (curProtocol === 'https') {
+            src = 'https://zz.bdstatic.com/linksubmit/push.js';
+        }
+        globalAddScript(src);
+    })
+</script>
+
+
+<!-- Global site tag (gtag.js) - Google Analytics -->
+<script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag() { dataLayer.push(arguments); }
+    gtag('js', new Date());
+    gtag('config', 'UA-142641425-1');
+
+    window.addEventListener('load', function () {
+        globalAddScript('https://www.googletagmanager.com/gtag/js?id=UA-142641425-1');
+    });
+</script>
+
+
+    <script>
+        // 非本站网址，新开tab页签
+        (function () {
+            var stopBubble = function (e) {
+                e && e.stopPropagation && e.stopPropagation();
+            }
+            var links = document.querySelectorAll('a');
+            [].slice.call(links).forEach(function (item) {
+                if (item.href && item.href.indexOf(window.location.host) === -1) {
+                    item.target = '_blank'
+                }
+                // 阻止冒泡，不触发彩蛋。
+                item.addEventListener('click', stopBubble, false);
+            });
+            var article = document.querySelector('article');
+            article && article.addEventListener('click', stopBubble, false)
+        })();
+    </script>
+    
+
+
+<div id="joinContentApp" data-v-app=""><div data-v-02b265ec="" class="youdao_translator__popup-thumb_conatiner" id="popupThumbId" style="display: none;"><img data-v-02b265ec="" class="youdao_translator__icon" src="./7天用Go从零实现RPC框架GeeRPC _ 极客兔兔_files/fe6bea567997dd4837a8ded07e2fe2bc.png"><div data-v-02b265ec="" class="search-click__box"></div><div data-v-02b265ec="" class="ai-click__box"></div><!----></div><div data-v-4c9d329a="" class="youdao_translator_popup-card_container youdao_translator_bg_main" id="popupCardId" style="display: none;"><div data-v-e861f71a="" data-v-4c9d329a="" class="youdao_translator_header-container youdao_translator_bg_header" id="popupCardHeader"><img data-v-e861f71a="" class="youdao_translator__title" src="./7天用Go从零实现RPC框架GeeRPC _ 极客兔兔_files/c49e45610c39da122cfeefaeebd55428.svg"><div data-v-7e1231e7="" data-v-e861f71a="" class="youdao_translator_select-container"><div data-v-7e1231e7="" class="youdao_translator_current-selected"><div data-v-7e1231e7="" class="youdao_translator_selected youdao_translator_color_text_1">英汉互译</div></div></div><div data-v-e861f71a="" class="youdao_translator__options"><div data-v-e861f71a="" class="youdao_translator_pin-btn"><img data-v-e861f71a="" class="youdao_translator_pin-btn__icon" src="./7天用Go从零实现RPC框架GeeRPC _ 极客兔兔_files/e16338d6694e35b8d6f8fa25007c6731.svg"></div><div data-v-e861f71a="" class="youdao_translator_more-btn"><img data-v-e861f71a="" class="youdao_translator_more-btn_icon" src="./7天用Go从零实现RPC框架GeeRPC _ 极客兔兔_files/680c0e9d2181b21748b6e7de487dddd0.svg"></div><div data-v-e861f71a="" class="youdao_translator_close-btn"><img data-v-e861f71a="" class="youdao_translator_close-btn_icon" src="./7天用Go从零实现RPC框架GeeRPC _ 极客兔兔_files/cd386aa8b1162ba18e2e416d0d5cb185.svg"></div></div></div><div data-v-4c9d329a="" class="youdao_translator_popup-card_main"><div data-v-4c9d329a="" class="youdao_translator_search__popup"><div data-v-0a1fd56f="" data-v-4c9d329a="" class="youdao_translator_input-container" input="" style="--ebb987c8: auto; --6ce113ce: 220px; --e24983a6: 22px; --363ccf6a: 8px; --64f81e9a: #939599;"><input data-v-0a1fd56f="" class="youdao_translator_popcard_input youdao_translator_bg_main" id="searchInput" placeholder="请输入要翻译的内容" maxlength="500" show-word-limit="false" autocomplete="off"><div data-v-0a1fd56f="" class="youdao_translator_suffix"><!----><div data-v-0a1fd56f="" class="youdao_translator_input-options"><div data-v-0a1fd56f="" class="youdao_translator_search_input__count youdao_translator_color_text_3" style="display: none;">0 / 500</div><div data-v-0a1fd56f="" class="youdao_translator_search_input__clear" style="display: none;"><img data-v-0a1fd56f="" class="youdao_translator_search_input__clear__icon" src="./7天用Go从零实现RPC框架GeeRPC _ 极客兔兔_files/cd386aa8b1162ba18e2e416d0d5cb185.svg"></div><div data-v-0a1fd56f="" class="youdao_translator_search_input__search"><img data-v-0a1fd56f="" class="youdao_translator_search_input__search__icon" src="./7天用Go从零实现RPC框架GeeRPC _ 极客兔兔_files/c3537c6c57e37ac3f5511d5df34a24fb.svg"></div></div></div></div></div><div data-v-4c9d329a="" class="youdao_translator_popup-card_divider youdao_translator_color_bg_5"></div></div><div data-v-59d0bc3e="" class="youdao_translator__result-container"><div data-v-59d0bc3e="" class="youdao_translator__result-cell"><!----><!----><div data-v-582010bd="" data-v-59d0bc3e="" class="content"><img data-v-582010bd="" class="img no-input" src="./7天用Go从零实现RPC框架GeeRPC _ 极客兔兔_files/4d2316e879f82970a7653ade60880e40.svg"><div data-v-582010bd="" class="tips youdao_translator_color_text_1">无输入内容</div></div></div></div><!----></div><div data-v-747da2c0="" class="youdao_aibox_popup-card_container light" id="aiboxCardId" style="display: none;"><div data-v-07bb1ac9="" data-v-747da2c0="" class="youdao_aibox_header_container"><img data-v-07bb1ac9="" class="youdao_aibox__logo" src="./7天用Go从零实现RPC框架GeeRPC _ 极客兔兔_files/166a5b4dd1659f3103e7648500444e68.png"><img data-v-07bb1ac9="" class="youdao_aibox__beta" src="./7天用Go从零实现RPC框架GeeRPC _ 极客兔兔_files/5368a48155d18c6a2ce8ab95f2715e1d.png"><div data-v-07bb1ac9="" class="youdao_translator__options"><div data-v-07bb1ac9="" class="remain-time">剩余免费次数: 10</div><div data-v-07bb1ac9="" class="svip-content"><div data-v-07bb1ac9="">SVIP无限畅享</div></div><div data-v-07bb1ac9="" class="youdao_translator_pin-btn youdao_translator_fixed"><img data-v-07bb1ac9="" class="youdao_translator_pin-btn__icon" src="./7天用Go从零实现RPC框架GeeRPC _ 极客兔兔_files/4cd15656f3223cfe3e270408a17a7d9a.svg"></div><div data-v-07bb1ac9="" class="youdao_translator_more-btn"><img data-v-07bb1ac9="" class="youdao_translator_more-btn_icon" src="./7天用Go从零实现RPC框架GeeRPC _ 极客兔兔_files/bdf5306d6a3e47510977e09d72c05bd4.png"></div><div data-v-07bb1ac9="" class="youdao_translator_close-btn"><img data-v-07bb1ac9="" class="youdao_translator_close-btn_icon" src="./7天用Go从零实现RPC框架GeeRPC _ 极客兔兔_files/0abdc41f1336845de735e079b333b771.png"></div></div></div><div data-v-747da2c0="" class="youdao_aibox"><div data-v-747da2c0="" class="youdao_aibox_index"><div data-v-7c948ba6="" class="youdao-aibox_container" id="result-box"><div data-v-7c948ba6="" class="origin-area" id="origin-area"><div data-v-8af6108a="" data-v-7c948ba6="" class="origin current-origin" id="origin"><div data-v-8af6108a="" class="origin-header AI-color_bg_1"><div data-v-8af6108a="" class="origin-title color_text_3"><img data-v-8af6108a="" class="origin_title_icon" src="./7天用Go从零实现RPC框架GeeRPC _ 极客兔兔_files/fc2bee2dc9853010824265e3cf01e5c9.png"><span data-v-8af6108a="" class="color_text_1">你的文本：</span></div><div data-v-8af6108a="" class="origin-options"><div data-v-8af6108a="" class="origin-input_icon tips pron" style="display: none;"><div data-v-23d71922="" data-v-8af6108a="" class="youdao_translator__pronounce_comp pronounce"><a data-v-23d71922="" class="youdao_translator_pronounce" data-syncid="0_originInput" title="点击发音" href="javascript:;" style="width: 24px; height: 24px; border-radius: 4px; display: flex; justify-content: center; align-items: center; color: transparent;"><svg class="youdao_translator_static-pronounce" width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg" data-v-23d71922=""><path d="M0.545908 5.3378L0.506694 10.6489C0.503005 11.1486 0.907016 11.5556 1.40667 11.5556H3.26438C3.65146 11.5556 4.02355 11.7052 4.30286 11.9732L6.80768 14.3764C7.44338 14.9863 8.5 14.5357 8.5 13.6548V10.6667V2.36388C8.5 1.48019 7.43775 1.03083 6.80359 1.64624L4.35654 4.02091C4.07664 4.29253 3.70195 4.44444 3.31192 4.44444H1.44588C0.95142 4.44444 0.549558 4.84335 0.545908 5.3378Z" stroke="#939599" stroke-linecap="round" stroke-linejoin="round" data-v-23d71922=""></path><path d="M13.2344 12.2188C14.3573 11.4535 15.1094 9.875 15.1094 8C15.1094 6.125 14.3284 4.554 13.2344 3.78125" stroke="#939599" stroke-width="1.125" stroke-linecap="round" data-v-23d71922=""></path><path d="M10.9844 9.87891C11.5458 9.49626 11.9219 8.79571 11.9219 7.99488C11.9219 7.20649 11.5314 6.51528 10.9844 6.12891" stroke="#939599" stroke-linecap="round" data-v-23d71922=""></path></svg><svg class="youdao_translator_voice-pronounce" width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg" data-v-23d71922=""><path d="M0.545908 5.3378L0.506694 10.6489C0.503005 11.1486 0.907016 11.5556 1.40667 11.5556H3.26438C3.65146 11.5556 4.02355 11.7052 4.30286 11.9732L6.80768 14.3764C7.44338 14.9863 8.5 14.5357 8.5 13.6548V10.6667V2.36388C8.5 1.48019 7.43775 1.03083 6.80359 1.64624L4.35654 4.02091C4.07664 4.29253 3.70195 4.44444 3.31192 4.44444H1.44588C0.95142 4.44444 0.549558 4.84335 0.545908 5.3378Z" stroke="#FB4A3E" stroke-linecap="round" stroke-linejoin="round" data-v-23d71922=""></path><path class="youdao_translator__audio__01" d="M13.2344 12.2188C14.3573 11.4535 15.1094 9.875 15.1094 8C15.1094 6.125 14.3284 4.554 13.2344 3.78125" stroke="#FB4A3E" stroke-width="1.125" stroke-linecap="round" data-v-23d71922=""></path><path class="youdao_translator__audio__00" d="M10.9844 9.87891C11.5458 9.49626 11.9219 8.79571 11.9219 7.99488C11.9219 7.20649 11.5314 6.51528 10.9844 6.12891" stroke="#FB4A3E" stroke-linecap="round" data-v-23d71922=""></path></svg></a></div></div><div data-v-8af6108a="" class="tips fold" style="display: none;"><img data-v-8af6108a="" class="icon_unfold" src="./7天用Go从零实现RPC框架GeeRPC _ 极客兔兔_files/fd8fd985ce581ba3eb5a923ea34a60f6.png"></div></div></div><textarea data-v-8af6108a="" class="origin-text color_text_1 no_text" rows="1" autofocus=""></textarea><div data-v-8af6108a="" class="origin-footer" style="display: none;"><div data-v-8af6108a="" class="limit AI-color_bg_1" style="color: rgb(141, 149, 181);">0/2000</div><img data-v-8af6108a="" class="icon_clear" src="./7天用Go从零实现RPC框架GeeRPC _ 极客兔兔_files/61a331a4f463d6cf0872c1cd7d075489.png"></div></div></div><div data-v-7c948ba6="" class="scroll-area" style="max-height: 190px;"><!----></div><div data-v-7c948ba6="" class="youdao_ai_footer AI-color_text_3" id="result-footer"><span data-v-7c948ba6="" class="no_tips">你可以参考以下模版</span><img data-v-7c948ba6="" class="icon_right_down" src="./7天用Go从零实现RPC框架GeeRPC _ 极客兔兔_files/1ac8af1acd1463893248c9dcdc4cdd53.png"></div></div><div data-v-5ec88791="" class="bottom-menu_container AI-color_bg_1" id="bottom-menu"><!----><img data-v-5ec88791="" class="bottom-menu_icon icon-left" src="./7天用Go从零实现RPC框架GeeRPC _ 极客兔兔_files/3951a100431308a1af5c9bb694cd8c7e.png"><!----><!----><div data-v-5ec88791="" class="my-menu"><div data-v-5ec88791="" class="my-menu-item disabled color_text_5"><div data-v-5ec88791="" class="name">句子润色</div><img data-v-5ec88791="" class="more-icon" src="./7天用Go从零实现RPC框架GeeRPC _ 极客兔兔_files/2590c2878f4ad37e124d9b8a42b94cf5.png"></div><div data-v-5ec88791="" class="my-menu-item disabled color_text_5"><div data-v-5ec88791="" class="name">语法纠错</div><!----></div><div data-v-5ec88791="" class="my-menu-item disabled color_text_5"><div data-v-5ec88791="" class="name">翻译</div><img data-v-5ec88791="" class="more-icon" src="./7天用Go从零实现RPC框架GeeRPC _ 极客兔兔_files/2590c2878f4ad37e124d9b8a42b94cf5.png"></div><div data-v-5ec88791="" class="my-menu-item disabled color_text_5"><div data-v-5ec88791="" class="name">单词百科</div><!----></div><div data-v-5ec88791="" class="my-menu-item"><div data-v-5ec88791="" class="name">写作模板</div><img data-v-5ec88791="" class="more-icon" src="./7天用Go从零实现RPC框架GeeRPC _ 极客兔兔_files/2590c2878f4ad37e124d9b8a42b94cf5.png"></div><div data-v-5ec88791="" class="my-menu-item disabled color_text_5"><div data-v-5ec88791="" class="name">论文去重</div><!----></div><div data-v-5ec88791="" class="my-menu-item disabled color_text_5"><div data-v-5ec88791="" class="name">代码分析</div><img data-v-5ec88791="" class="more-icon" src="./7天用Go从零实现RPC框架GeeRPC _ 极客兔兔_files/2590c2878f4ad37e124d9b8a42b94cf5.png"></div><div data-v-5ec88791="" class="my-menu-item disabled color_text_5"><div data-v-5ec88791="" class="name">重点提炼</div><!----></div><div data-v-5ec88791="" class="my-menu-item disabled color_text_5"><div data-v-5ec88791="" class="name">内容扩写</div><!----></div><div data-v-5ec88791="" class="my-menu-item disabled color_text_5"><div data-v-5ec88791="" class="name">写作建议</div><!----></div><div data-v-5ec88791="" class="my-menu-item disabled color_text_5"><div data-v-5ec88791="" class="name">智能回复</div><!----></div><div data-v-5ec88791="" class="my-menu-item disabled color_text_5"><div data-v-5ec88791="" class="name">prompt优化</div><!----></div></div><img data-v-5ec88791="" class="menu-mask" src="./7天用Go从零实现RPC框架GeeRPC _ 极客兔兔_files/0ba2e8e239c935dec15abf1ae17ff731.png"><img data-v-5ec88791="" class="bottom-menu_icon icon-right" src="./7天用Go从零实现RPC框架GeeRPC _ 极客兔兔_files/d596090b87ea41d16ca237ea62e7c311.png"></div><div data-v-93f28dd0="" class="bottom-input AI-color_bg_1" id="bottom-input"><div data-v-93f28dd0="" class="input-area"><input data-v-93f28dd0="" class="input" placeholder="输入你想要的写作模版..." maxlength="100"><div data-v-93f28dd0="" class="options"><!----><div data-v-93f28dd0="" class="icon" style="display: none;"><img data-v-93f28dd0="" class="icon_send_message" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAADAAAAAwCAYAAABXAvmHAAAACXBIWXMAABYlAAAWJQFJUiTwAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAdBSURBVHgB7VhNbxtVFL33jSdVF6juL4g3rOsgsWBlV2LBAqmpBJuqqJMKRBdFchCsEK3DFgGm0KpU/XAkVLWVUB0hFmwad8M62cKC5BfUXSBK7HmX+/HeOF9tDXGaLvyk2JOZN2/OPffcc98YYDImYzIm4yAHwks+Xm1SteR8fQCu98cFbG+//lIGUG1S3XuokYMsR6h4B0SMlP+Wfv8MT26eW4KXZLz+OdVygjqDzHwO0+gACQiccOwJJQCPOLv9vgMN4I1PqYYp1HOijDxVnLBMLIuAmcGjRyBHgJ7ncyJ629d44QHUP+nXISmdyIFBA5VZKuAUsAAUlvmDhtp2nsEjJ4BFhA5Xtq/3QgJ4s8GgnTvhHZ5h0EeJUaMoBE0iAppZBmNZta5BeP0kxi054VTk8OIy8Pb5fp0Sx0zDGQZ0lOQk08y6UJkweJWFYHQ8IYL34X6GixKkxJKzxlzCaQC/CvsZwOw5kQczjQzaMWjByyiYcKWamQQ9RgEXAJOlgf/vMtFljq6qwaiGRDlyzOFw8N658Uvonff7dVdyNY/UYOBldQ5JP59wDEy1Ld/CvtEKQj8XJGdA56xzEE0GzNbpM1FLrAnUTFk2JJoEYG0sAZxm0MxGjQ8zXnrak+pUtUGqaSGZ9MA5Yd2uCxZh1+s86LEoWrSxseimDt3nc1VlWq570hpxzmKwRBDmvT0EMDdHNcJBnTFkvP60ALQiAy0xkiiMXpGGolUSVfBWmJYElVI3R15n8AST0qH7PKWqU/kjV9lptHpCUkZCBkJvpYX/rYjPnQ5MIzHovOJtTYi61m9QiwNlOsRQWKLFpwKXk+gcF2E+/+s3afetBlVynFoW/9fUxODRGphQT9q/JHt6+8puGHcN4KNTG5laHmKNqYXQW4CNQBkCCkEQBPAF06S+rtq3h8ts5+hxTn7hl+9KLZkk4DncZQ6yopIBMMlp9lBlqEnbtE4JaHWkABoCHvGWOQSBypJCs2HELqZWH6TaFuwUnENzrxpGDZidw1/KS6Xmz61SL4JPyC8zqooJXOtU0TM/WvS6OtqTpZA0KHR/jhQAl85FdggFr4UpJAsQis5hTwS7rro1Bi1N+fC+h7mnhZ+upN249uw5qvicwTPzUuhqq+pIugBKslGtP5aQmZZ8DPxgtAzwKpWIEcJmKqSYNQzWIb1NcMHpwiCdgrjWJ5q/90Ops3ndkx/SMUh8hy224o1xHD7HNgsShGYNLMUUJmi90c59kAy34wRhF8m0KIsqcGFViDBvVsbsWCtNi4H/f8z/L/y14WbuXdsK/t0PNqpJ4nldqoT70NbXjRqv7SAB48eeF5jxhkCu/fbl1GhFzME2+OYuM3Ak5s8FHxbmQvFu2oBJ5mEdqX988ebhte3rnT5Lx/ouX+a6KOMm2jVdagrqY7ofiul0YY41AF4fd3egYu7m8fXdqdUU8xlw+ccMcokXXQms6LZWsxMYUhaDTtvtneBPZRtVn+Rdvl52EO4rsodhDcEpSC27kX1hC4PLJbSzgcUx8hsZu1N14LBMlHPTSaZZR7J1sAbFf1NJqXL5Bq5vBs9bjAeyJ/Jq6bYz88qrsCquYHoX4u2Y57moHp0jRS49+NKDr9LGbrhG7sSt24UGu/Jx/r1BlZ9cZ7fSlj/o9+Vt6Vu5ljF4KiUP+FI5tAdpeACFBENzMlvWHEqhoovbEbLeBvoSAzng6BIadZAfLMXiVhrD616W/c1vVu4+u8ZRfQnxBEXBBiOIBuGKYytcJ4HpN4ILUlXpeVobewBpTp2oZ3EJfm2qNTIqp5BKH6mgN7cK4E3/3kAHZ7PNgwaoTGPhamFdm4s0gNL4M9C6c3iNmVpDy7i2+38GeZ1BzCrQwHYsUKc2SUMrjgwXdmnBuiLIcB/R4+4um7g9B6A3k18yYPynLyZ0kb+PCNDCqYZgzGHsoSgZwvCy4iD0hZCNKE09Blp5JgbYy/DYURDeDJu/q1HPoOds+7GlCcbAMJzjinahYboQnGUmNkno7VsArTtpV37q2Orhup1RCTmkL1hCTVdkgoZ9RLcHGHpLkJb5JoUiDxLbfRc6lgBkMJCOsaZMBweR1krNa+20eb2dLjCRJ0XLBphiA8PYBIvMaLasmON2xeW4jxICdaCHKhvAYTf1sHD1x3QhzrnRLnUGMJjha+smrJCtongBi05NxXunFTj6NdjPAPpPUrZTfKRS4IcmQIvf306b2+fJViOF/vEEcNWZZEz3W7cOxXYjWmjnytT+ZqDVwV4Og9f4gS1GMc8de+5pc69yENdvJTNWF0FyEAKA2DesgINbrT7v+SPvhcY9zmYbDf6t8EIuP8XouzVoa5PK9mHPxDlt372azD1rnT1n4P+Om+2pVk59ydx6tE99fSwciusrcc3nrXNgAciQuvCUSHG3zYlc7Mjs/X7+9uXh7vZp48AktH1kmfwAzLtbpEfulXSx/Yztw2RMxmRMxmSMbfwLb4dXV1Enh/8AAAAASUVORK5CYII="></div></div></div></div><!----></div></div><div class="toast"></div></div></div><script src="./7天用Go从零实现RPC框架GeeRPC _ 极客兔兔_files/busuanzi.pure.mini.js.下载"></script><script src="./7天用Go从零实现RPC框架GeeRPC _ 极客兔兔_files/hm.js.下载"></script><script src="./7天用Go从零实现RPC框架GeeRPC _ 极客兔兔_files/push.js.下载"></script><script src="./7天用Go从零实现RPC框架GeeRPC _ 极客兔兔_files/js(1)"></script></body></html>
